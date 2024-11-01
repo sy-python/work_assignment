@@ -9,3 +9,7 @@ class Wallet(Base):
 
     uuid = Column(String, primary_key=True, index=True, unique=True)
     balance = Column(Float, default=0.0)
+
+
+class WalletError(Exception):
+    pass

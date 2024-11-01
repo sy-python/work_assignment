@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from .database import get_db
+from .models import WalletError
 from .services import (
     create_wallet,
     deposit,
@@ -20,7 +21,15 @@ async def operation(wallet_uuid: str, operation: dict, db=Depends(get_db)):
         if operation["operationType"] == "DEPOSIT":
             await deposit(session, wallet_uuid, operation["amount"])
         elif operation["operationType"] == "WITHDRAW":
-            await withdraw(session, wallet_uuid, operation["amount"])
+            try:
+                await withdraw(session, wallet_uuid, operation["amount"])
+            except WalletError as e:
+                if e.args[0] == "Insufficient funds":
+                    raise HTTPException(status_code=400, detail=e.args[0])
+                elif e.args[0] == "Wallet not found":
+                    raise HTTPException(status_code=404, detail=e.args[0])
+                else:
+                    raise HTTPException(status_code=500, detail=e.args[0])
         else:
             raise HTTPException(status_code=400, detail="Invalid operation type")
     return {"message": "Operation successful"}
